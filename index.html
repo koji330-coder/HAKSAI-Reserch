@@ -1,0 +1,901 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>HAKSAI Research Deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0a0b;
+  --surface: #131316;
+  --surface2: #1c1c21;
+  --border: rgba(255,255,255,0.06);
+  --text: #f0efe8;
+  --muted: #6b6a65;
+  --go: #1a9e6e;
+  --go-bg: rgba(26,158,110,0.12);
+  --check: #c8882a;
+  --check-bg: rgba(200,136,42,0.12);
+  --wait: #4a7fa5;
+  --wait-bg: rgba(74,127,165,0.12);
+  --stop: #b84040;
+  --stop-bg: rgba(184,64,64,0.12);
+  --accent: #e8d5a3;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ── HEADER ── */
+header {
+  padding: 20px 20px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.logo {
+  font-family: 'Syne', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  letter-spacing: 0.15em;
+  color: var(--accent);
+}
+.logo span { color: var(--muted); font-weight: 400; }
+.header-right { display: flex; align-items: center; gap: 12px; }
+.header-count { font-size: 11px; color: var(--muted); letter-spacing: 0.06em; }
+
+/* ── FILTER ── */
+.filter-bar {
+  display: flex;
+  gap: 6px;
+  padding: 16px 20px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.filter-bar::-webkit-scrollbar { display: none; }
+.filter-tab {
+  flex-shrink: 0;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.filter-tab.active { background: var(--accent); color: #0a0a0b; border-color: var(--accent); }
+
+/* ── DECK ── */
+.deck-area {
+  position: relative;
+  padding: 24px 20px 8px;
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.deck-stack { position: relative; width: 100%; max-width: 360px; }
+.card-shadow {
+  position: absolute;
+  width: 100%;
+  border-radius: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+}
+.card-shadow:nth-child(1) { height: 460px; top: 12px; left: 6px; opacity: 0.4; transform: rotate(2deg); }
+.card-shadow:nth-child(2) { height: 460px; top: 6px; left: 3px; opacity: 0.6; transform: rotate(1deg); }
+
+/* ── CARD ── */
+.card {
+  position: relative;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  overflow: hidden;
+  cursor: grab;
+  user-select: none;
+  touch-action: pan-y;
+  z-index: 10;
+  will-change: transform;
+}
+.card:active { cursor: grabbing; }
+.card.flipped .card-front { display: none; }
+.card.flipped .card-back { display: block; }
+.card-back { display: none; }
+
+.card-thumb {
+  width: 100%;
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  background: linear-gradient(135deg, var(--surface2) 0%, #1a1a20 100%);
+  position: relative;
+  overflow: hidden;
+}
+.card-thumb img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+
+.status-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  z-index: 2;
+}
+.badge-go { background: var(--go-bg); color: var(--go); border: 1px solid rgba(26,158,110,0.3); }
+.badge-check { background: var(--check-bg); color: var(--check); border: 1px solid rgba(200,136,42,0.3); }
+.badge-wait { background: var(--wait-bg); color: var(--wait); border: 1px solid rgba(74,127,165,0.3); }
+.badge-stop { background: var(--stop-bg); color: var(--stop); border: 1px solid rgba(184,64,64,0.3); }
+
+.source-badge {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  background: rgba(0,0,0,0.65);
+  color: var(--accent);
+  backdrop-filter: blur(4px);
+  z-index: 2;
+}
+
+.card-body { padding: 16px; }
+.card-category { font-size: 10px; letter-spacing: 0.1em; color: var(--muted); text-transform: uppercase; margin-bottom: 6px; }
+.card-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; line-height: 1.3; margin-bottom: 10px; }
+.card-summary { font-size: 12px; color: var(--muted); line-height: 1.6; margin-bottom: 14px; }
+
+.metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.metric { background: var(--surface2); border-radius: 10px; padding: 10px 8px; text-align: center; }
+.metric-val { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; }
+.metric-label { font-size: 9px; color: var(--muted); letter-spacing: 0.06em; margin-top: 2px; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 14px; }
+.tag { padding: 3px 9px; border-radius: 6px; font-size: 10px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+.tag-alert { background: rgba(184,64,64,0.1); color: #c87070; border-color: rgba(184,64,64,0.2); }
+
+.urls-section { border-top: 1px solid var(--border); padding-top: 12px; }
+.urls-label { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 8px; }
+.url-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  background: var(--surface2);
+  border-radius: 8px;
+  margin-bottom: 6px;
+  text-decoration: none;
+  cursor: pointer;
+}
+.url-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.url-dot-amazon { background: #f90; }
+.url-dot-rakumart { background: #e84; }
+.url-dot-other { background: var(--muted); }
+.url-text { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+.url-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  cursor: pointer;
+  background: transparent;
+  width: 100%;
+}
+
+/* ── CARD BACK ── */
+.card-back { padding: 16px; max-height: 460px; overflow-y: auto; }
+.back-title { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 14px; }
+.check-item { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.check-item:last-child { border-bottom: none; }
+.check-icon { font-size: 13px; flex-shrink: 0; width: 18px; }
+.check-text { flex: 1; color: var(--muted); }
+.check-val { font-size: 11px; font-weight: 500; }
+.val-good { color: var(--go); }
+.val-warn { color: var(--check); }
+.val-bad { color: var(--stop); }
+.val-na { color: var(--muted); }
+
+.profit-box { background: var(--surface2); border-radius: 12px; padding: 14px; margin: 14px 0; }
+.profit-row { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; color: var(--muted); }
+.profit-row.total { border-top: 1px solid var(--border); margin-top: 8px; padding-top: 10px; font-weight: 600; font-size: 14px; color: var(--text); }
+.profit-row.total span:last-child { color: var(--go); }
+.diff-box { background: var(--go-bg); border: 1px solid rgba(26,158,110,0.2); border-radius: 10px; padding: 12px; font-size: 12px; color: var(--go); line-height: 1.6; }
+
+/* ── HINTS ── */
+.flip-hint { text-align: center; padding: 0 20px 4px; font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+.card-counter { text-align: center; padding-bottom: 16px; font-size: 12px; color: var(--muted); font-family: 'Syne', sans-serif; }
+
+/* ── ADD BTN ── */
+.add-section { padding: 0 20px 32px; }
+.add-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px dashed rgba(232,213,163,0.3);
+  background: transparent;
+  color: var(--accent);
+  font-size: 13px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.add-btn:active { background: rgba(232,213,163,0.05); }
+
+/* ── SWIPE ── */
+.swipe-indicator { position: absolute; top: 50%; transform: translateY(-50%); font-size: 36px; opacity: 0; transition: opacity 0.1s; z-index: 20; pointer-events: none; }
+.swipe-indicator.left { left: 20px; }
+.swipe-indicator.right { right: 20px; }
+.card.swipe-left { animation: swipeLeft 0.35s ease forwards; }
+.card.swipe-right { animation: swipeRight 0.35s ease forwards; }
+@keyframes swipeLeft { to { transform: translateX(-120%) rotate(-15deg); opacity: 0; } }
+@keyframes swipeRight { to { transform: translateX(120%) rotate(15deg); opacity: 0; } }
+
+/* ── EMPTY ── */
+.empty-state { text-align: center; padding: 60px 20px; }
+.empty-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+.empty-sub { font-size: 13px; color: var(--muted); line-height: 1.8; }
+
+/* ── MODAL BASE ── */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 100;
+  display: none;
+  align-items: flex-end;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.modal-overlay.open { display: flex; }
+.modal-sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--surface);
+  border-radius: 24px 24px 0 0;
+  padding: 24px 20px 48px;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  animation: slideUp 0.3s ease;
+}
+@keyframes slideUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-handle { width: 36px; height: 4px; background: var(--border); border-radius: 2px; margin: 0 auto 20px; }
+.modal-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+.modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 20px; line-height: 1.7; }
+
+/* Upload zones */
+.upload-zones { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+.upload-zone {
+  border: 1px dashed var(--border);
+  border-radius: 14px;
+  padding: 20px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.upload-zone input { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+.upload-zone:active { border-color: var(--accent); background: rgba(232,213,163,0.04); }
+.upload-zone.loaded { border-color: var(--go); border-style: solid; }
+.upload-icon { font-size: 28px; margin-bottom: 8px; }
+.upload-label { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: var(--muted); }
+.upload-sub { font-size: 10px; color: rgba(107,106,101,0.6); margin-top: 4px; }
+.upload-zone.loaded .upload-sub { color: var(--go); }
+
+.primary-btn {
+  width: 100%;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: #0a0a0b;
+  font-size: 13px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+}
+.primary-btn.ready { opacity: 1; }
+
+/* URL inputs */
+.input-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
+.styled-select, .styled-input {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  width: 100%;
+  outline: none;
+}
+.styled-input::placeholder { color: var(--muted); }
+.styled-select option { background: var(--surface2); }
+
+/* ── LOADING ── */
+.loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.92);
+  z-index: 200;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+}
+.loading-overlay.open { display: flex; }
+.loading-spinner {
+  width: 44px;
+  height: 44px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-family: 'Syne', sans-serif; font-size: 14px; color: var(--accent); letter-spacing: 0.1em; }
+.loading-sub { font-size: 12px; color: var(--muted); text-align: center; padding: 0 32px; line-height: 1.6; }
+
+/* ── SETUP SCREEN ── */
+.setup-screen {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 300;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+}
+.setup-screen.open { display: flex; }
+.setup-logo { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 20px; letter-spacing: 0.15em; color: var(--accent); margin-bottom: 8px; }
+.setup-desc { font-size: 13px; color: var(--muted); margin-bottom: 32px; text-align: center; line-height: 1.7; }
+.setup-label { font-size: 11px; color: var(--muted); letter-spacing: 0.08em; margin-bottom: 8px; align-self: flex-start; width: 100%; max-width: 360px; }
+.setup-input {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: 'Noto Sans JP', sans-serif;
+  outline: none;
+  margin-bottom: 20px;
+}
+.setup-input::placeholder { color: var(--muted); font-size: 11px; }
+.setup-btn {
+  width: 100%;
+  max-width: 360px;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  background: var(--accent);
+  color: #0a0a0b;
+  font-size: 14px;
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP (初回のみ) -->
+<div class="setup-screen" id="setup-screen">
+  <div class="setup-logo">HAKSAI</div>
+  <div style="font-size:12px;color:var(--muted);letter-spacing:0.1em;margin-bottom:32px;">/ research deck</div>
+  <div class="setup-desc">GAS WebアプリのURLを入力してください。<br>一度設定すれば次回から不要です。</div>
+  <div class="setup-label">GAS URL</div>
+  <input class="setup-input" id="gas-url-input" type="url"
+    placeholder="https://script.google.com/macros/s/...">
+  <button class="setup-btn" onclick="saveGasUrl()">設定して始める</button>
+</div>
+
+<!-- MAIN APP -->
+<header>
+  <div class="logo">HAKSAI <span>/ research deck</span></div>
+  <div class="header-right">
+    <div class="header-count" id="header-count">— candidates</div>
+  </div>
+</header>
+
+<div class="filter-bar">
+  <button class="filter-tab active" onclick="setFilter('all',this)">すべて</button>
+  <button class="filter-tab" onclick="setFilter('go',this)">GO ✓</button>
+  <button class="filter-tab" onclick="setFilter('check',this)">要確認</button>
+  <button class="filter-tab" onclick="setFilter('wait',this)">原価待ち</button>
+  <button class="filter-tab" onclick="setFilter('stop',this)">STOP</button>
+</div>
+
+<div class="deck-area" id="deck-area">
+  <div class="deck-stack" id="deck-stack">
+    <div class="card-shadow"></div>
+    <div class="card-shadow"></div>
+    <div class="card" id="main-card" onclick="handleCardClick(event)">
+      <div style="padding:60px 20px;text-align:center;color:var(--muted);font-size:13px;">読み込み中...</div>
+    </div>
+    <div class="swipe-indicator left" id="ind-left">⬅️</div>
+    <div class="swipe-indicator right" id="ind-right">➡️</div>
+  </div>
+</div>
+
+<div class="flip-hint" id="flip-hint">タップで詳細　／　スワイプで次へ</div>
+<div class="card-counter" id="card-counter"></div>
+
+<div class="add-section">
+  <button class="add-btn" onclick="openUploadModal()">＋ 新しい候補を追加</button>
+</div>
+
+<!-- UPLOAD MODAL -->
+<div class="modal-overlay" id="upload-modal" onclick="closeOnOverlay(event,'upload-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">スクショを追加</div>
+    <div class="modal-sub">AmazonかラクマートのスクショをAIが分析してカードを自動生成します。どちらか一方だけでもOK。</div>
+    <div class="upload-zones">
+      <div class="upload-zone" id="zone-amazon">
+        <input type="file" accept="image/*" capture="environment" onchange="loadImage(this,'amazon')">
+        <div class="upload-icon">🛒</div>
+        <div class="upload-label">Amazon</div>
+        <div class="upload-sub" id="sub-amazon">タップして選択</div>
+      </div>
+      <div class="upload-zone" id="zone-rakumart">
+        <input type="file" accept="image/*" capture="environment" onchange="loadImage(this,'rakumart')">
+        <div class="upload-icon">📦</div>
+        <div class="upload-label">ラクマート</div>
+        <div class="upload-sub" id="sub-rakumart">タップして選択</div>
+      </div>
+    </div>
+    <button class="primary-btn" id="analyze-btn" onclick="startAnalysis()">AIで分析してカードを生成</button>
+  </div>
+</div>
+
+<!-- URL MODAL -->
+<div class="modal-overlay" id="url-modal" onclick="closeOnOverlay(event,'url-modal')">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" style="margin-bottom:16px">URLを追加</div>
+    <div class="input-group">
+      <select class="styled-select" id="url-type">
+        <option value="amazon">Amazon</option>
+        <option value="rakumart">ラクマート</option>
+        <option value="other">その他</option>
+      </select>
+      <input class="styled-input" id="url-label-input" placeholder="ラベル（例：競合A、仕入れ先）">
+      <input class="styled-input" id="url-value-input" type="url" placeholder="https://...">
+    </div>
+    <button class="primary-btn ready" onclick="saveUrl()">保存</button>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-spinner"></div>
+  <div class="loading-text">AIが分析中...</div>
+  <div class="loading-sub" id="loading-sub">画像を読み取っています<br>10〜20秒かかります</div>
+</div>
+
+<script>
+// ── CONFIG ──
+const GAS_URL_KEY = 'haksai_gas_url';
+let GAS_URL = localStorage.getItem(GAS_URL_KEY) || '';
+
+// ── STATE ──
+let allCards = [];
+let filteredCards = [];
+let currentIndex = 0;
+let currentFilter = 'all';
+let isFlipped = false;
+let isDragging = false;
+let currentCardId = null;
+let uploadedImages = { amazon: null, rakumart: null };
+
+// ── INIT ──
+window.onload = async () => {
+  if (!GAS_URL) {
+    document.getElementById('setup-screen').classList.add('open');
+    return;
+  }
+  await loadCards();
+};
+
+function saveGasUrl() {
+  const url = document.getElementById('gas-url-input').value.trim();
+  if (!url.startsWith('https://script.google.com')) {
+    alert('正しいGAS URLを入力してください');
+    return;
+  }
+  GAS_URL = url;
+  localStorage.setItem(GAS_URL_KEY, url);
+  document.getElementById('setup-screen').classList.remove('open');
+  loadCards();
+}
+
+// ── LOAD ──
+async function loadCards() {
+  // localStorageから即表示
+  const cached = localStorage.getItem('haksai_cards');
+  if (cached) {
+    try { allCards = JSON.parse(cached); renderCard(); } catch(e) {}
+  }
+  // バックグラウンドでスプシと同期
+  try {
+    const data = await gasPost({ action: 'getCards' });
+    if (data.status === 'ok') {
+      allCards = data.cards || [];
+      localStorage.setItem('haksai_cards', JSON.stringify(allCards));
+      renderCard();
+    }
+  } catch(e) {
+    console.error('同期エラー:', e);
+  }
+}
+
+// ── GAS通信 ──
+async function gasPost(body) {
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    redirect: 'follow',
+    body: JSON.stringify(body)
+  });
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    console.error('GASレスポンス:', text.slice(0, 300));
+    throw new Error('JSONパースエラー: ' + text.slice(0, 100));
+  }
+}
+
+// ── FILTER ──
+function setFilter(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  currentIndex = 0;
+  isFlipped = false;
+  renderCard();
+}
+
+function getFiltered() {
+  if (currentFilter === 'all') return [...allCards];
+  return allCards.filter(c => c.status === currentFilter);
+}
+
+// ── RENDER ──
+function renderCard() {
+  filteredCards = getFiltered();
+  const area = document.getElementById('deck-area');
+  const stack = document.getElementById('deck-stack');
+  document.getElementById('header-count').textContent = allCards.length + ' candidates';
+
+  if (filteredCards.length === 0) {
+    stack.style.display = 'none';
+    document.getElementById('flip-hint').style.display = 'none';
+    document.getElementById('card-counter').textContent = '';
+    area.innerHTML = `<div class="empty-state">
+      <div class="empty-icon">📭</div>
+      <div class="empty-title">候補がありません</div>
+      <div class="empty-sub">＋ボタンからスクショを追加して<br>最初のカードを作ろう</div>
+    </div>`;
+    return;
+  }
+
+  if (!stack.parentElement || !document.getElementById('deck-stack')) {
+    area.innerHTML = '';
+    area.appendChild(stack);
+  }
+  stack.style.display = 'block';
+  document.getElementById('flip-hint').style.display = 'block';
+
+  const shadows = stack.querySelectorAll('.card-shadow');
+  shadows.forEach(s => s.style.display = filteredCards.length > 1 ? 'block' : 'none');
+  document.getElementById('card-counter').textContent = `${currentIndex + 1} / ${filteredCards.length}`;
+
+  const d = filteredCards[currentIndex];
+  currentCardId = d.id;
+
+  const card = document.getElementById('main-card');
+  card.innerHTML = buildFront(d) + buildBack(d);
+  card.classList.remove('flipped', 'swipe-left', 'swipe-right');
+  isFlipped = false;
+  attachSwipe(card);
+}
+
+function statusBadge(s) {
+  const map = {
+    go: ['badge-go','GO'],
+    check: ['badge-check','要確認'],
+    wait: ['badge-wait','原価待ち'],
+    stop: ['badge-stop','STOP']
+  };
+  const [cls, label] = map[s] || ['badge-wait','—'];
+  return `<div class="status-badge ${cls}">${label}</div>`;
+}
+
+function buildFront(d) {
+  const tags = (d.tags || []).map(t => {
+    const alert = /待ち|注意|外|STOP/.test(t);
+    return `<span class="tag${alert?' tag-alert':''}">${t}</span>`;
+  }).join('');
+
+  const urls = (d.urls || []).map(u =>
+    `<div class="url-item" onclick="event.stopPropagation();openLink('${u.url}')">
+      <div class="url-dot url-dot-${u.type}"></div>
+      <div class="url-text">${u.label}</div>
+      <span style="font-size:10px;color:var(--muted)">→</span>
+    </div>`
+  ).join('');
+
+  return `<div class="card-front">
+    <div class="card-thumb">
+      <span style="position:relative;z-index:1">${d.emoji || '📦'}</span>
+      ${statusBadge(d.status)}
+      <div class="source-badge">${d.source || 'Amazon'}</div>
+    </div>
+    <div class="card-body">
+      <div class="card-category">${d.category || ''}</div>
+      <div class="card-title">${(d.title||'').replace(/\n/,'<br>')}</div>
+      <div class="card-summary">${d.summary || ''}</div>
+      <div class="metrics">
+        <div class="metric"><div class="metric-val">${d.price||'—'}</div><div class="metric-label">競合価格</div></div>
+        <div class="metric"><div class="metric-val">${d.monthly_sales||'—'}</div><div class="metric-label">月販数</div></div>
+        <div class="metric"><div class="metric-val">${d.reviews||'—'}</div><div class="metric-label">レビュー</div></div>
+      </div>
+      <div class="tags">${tags}</div>
+      <div class="urls-section">
+        <div class="urls-label">LINKS</div>
+        ${urls}
+        <button class="url-add" onclick="event.stopPropagation();openUrlModal()">＋ URLを追加</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function buildBack(d) {
+  const checks = (d.checks || []).map(c =>
+    `<div class="check-item">
+      <div class="check-icon">${c.icon}</div>
+      <div class="check-text">${c.text}</div>
+      <div class="check-val ${c.cls}">${c.val}</div>
+    </div>`
+  ).join('');
+
+  const p = d.profit || {};
+  return `<div class="card-back">
+    <div class="back-title">📊 判定レポート</div>
+    <div class="checklist">${checks}</div>
+    <div class="profit-box">
+      <div class="profit-row"><span>販売価格</span><span>${p.price||'—'}</span></div>
+      <div class="profit-row"><span>着地原価</span><span>${p.cost||'—'}</span></div>
+      <div class="profit-row"><span>Amazon手数料</span><span>${p.amazon||'—'}</span></div>
+      <div class="profit-row"><span>FBA費用</span><span>${p.fba||'—'}</span></div>
+      <div class="profit-row total"><span>純利益/個</span><span>${p.net||'—'}</span></div>
+      <div class="profit-row" style="font-size:11px"><span>月100個の場合</span><span>${p.monthly||'—'}</span></div>
+    </div>
+    <div class="diff-box">💡 ${d.diff||''}</div>
+  </div>`;
+}
+
+// ── FLIP & SWIPE ──
+function handleCardClick(e) {
+  if (isDragging) return;
+  if (e.target.closest('.url-add') || e.target.closest('.url-item')) return;
+  const card = document.getElementById('main-card');
+  isFlipped = !isFlipped;
+  card.classList.toggle('flipped', isFlipped);
+}
+
+function openLink(url) {
+  if (url && url !== '#') window.open(url, '_blank');
+}
+
+function nextCard() {
+  filteredCards = getFiltered();
+  if (!filteredCards.length) return;
+  currentIndex = (currentIndex + 1) % filteredCards.length;
+  isFlipped = false;
+  renderCard();
+}
+function prevCard() {
+  filteredCards = getFiltered();
+  if (!filteredCards.length) return;
+  currentIndex = (currentIndex - 1 + filteredCards.length) % filteredCards.length;
+  isFlipped = false;
+  renderCard();
+}
+
+function attachSwipe(card) {
+  let startX = 0, startY = 0, mouseDown = false;
+
+  card.addEventListener('touchstart', e => {
+    startX = e.touches[0].clientX;
+    startY = e.touches[0].clientY;
+    isDragging = false;
+  }, {passive:true});
+
+  card.addEventListener('touchmove', e => {
+    const dx = e.touches[0].clientX - startX;
+    const dy = e.touches[0].clientY - startY;
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 8) {
+      isDragging = true;
+      card.style.transform = `translateX(${dx*0.6}px) rotate(${dx*0.04}deg)`;
+      document.getElementById('ind-left').style.opacity = dx < -20 ? Math.min(1,(-dx-20)/60) : 0;
+      document.getElementById('ind-right').style.opacity = dx > 20 ? Math.min(1,(dx-20)/60) : 0;
+    }
+  }, {passive:true});
+
+  card.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - startX;
+    document.getElementById('ind-left').style.opacity = 0;
+    document.getElementById('ind-right').style.opacity = 0;
+    card.style.transform = '';
+    if (isDragging && Math.abs(dx) > 80) {
+      if (dx < 0) { card.classList.add('swipe-left'); setTimeout(() => nextCard(), 320); }
+      else { card.classList.add('swipe-right'); setTimeout(() => prevCard(), 320); }
+    }
+    setTimeout(() => isDragging = false, 50);
+  }, {passive:true});
+
+  card.addEventListener('mousedown', e => { startX = e.clientX; mouseDown = true; isDragging = false; });
+  window.addEventListener('mousemove', e => {
+    if (!mouseDown) return;
+    const dx = e.clientX - startX;
+    if (Math.abs(dx) > 8) { isDragging = true; card.style.transform = `translateX(${dx*0.5}px) rotate(${dx*0.03}deg)`; }
+  });
+  window.addEventListener('mouseup', e => {
+    if (!mouseDown) return;
+    mouseDown = false;
+    const dx = e.clientX - startX;
+    card.style.transform = '';
+    if (isDragging && Math.abs(dx) > 80) {
+      if (dx < 0) { card.classList.add('swipe-left'); setTimeout(() => nextCard(), 320); }
+      else { card.classList.add('swipe-right'); setTimeout(() => prevCard(), 320); }
+    }
+    setTimeout(() => isDragging = false, 50);
+  });
+}
+
+// ── UPLOAD MODAL ──
+function openUploadModal() {
+  uploadedImages = { amazon: null, rakumart: null };
+  ['amazon','rakumart'].forEach(t => {
+    document.getElementById('zone-'+t).classList.remove('loaded');
+    document.getElementById('sub-'+t).textContent = 'タップして選択';
+  });
+  document.getElementById('analyze-btn').classList.remove('ready');
+  document.getElementById('upload-modal').classList.add('open');
+}
+
+function closeOnOverlay(e, id) {
+  if (e.target === document.getElementById(id)) {
+    document.getElementById(id).classList.remove('open');
+  }
+}
+
+function loadImage(input, type) {
+  if (!input.files[0]) return;
+  const file = input.files[0];
+  const reader = new FileReader();
+  reader.onload = e => {
+    uploadedImages[type] = { base64: e.target.result.split(',')[1], mimeType: file.type };
+    document.getElementById('zone-'+type).classList.add('loaded');
+    document.getElementById('sub-'+type).textContent = '✅ 読み込み済み';
+    if (uploadedImages.amazon || uploadedImages.rakumart) {
+      document.getElementById('analyze-btn').classList.add('ready');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+async function startAnalysis() {
+  const img = uploadedImages.amazon || uploadedImages.rakumart;
+  const source = uploadedImages.amazon ? 'amazon' : 'rakumart';
+  if (!img) return;
+
+  document.getElementById('upload-modal').classList.remove('open');
+  document.getElementById('loading').classList.add('open');
+
+  try {
+    const data = await gasPost({
+      action: 'analyzeImage',
+      imageBase64: img.base64,
+      mimeType: img.mimeType,
+      source: source
+    });
+
+    if (data.status === 'ok') {
+      allCards.unshift(data.card);
+      localStorage.setItem('haksai_cards', JSON.stringify(allCards));
+      currentIndex = 0;
+      currentFilter = 'all';
+      document.querySelectorAll('.filter-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+      renderCard();
+    } else {
+      alert('エラー: ' + data.message);
+    }
+  } catch(e) {
+    alert('通信エラー: ' + e.message);
+  } finally {
+    document.getElementById('loading').classList.remove('open');
+  }
+}
+
+// ── URL MODAL ──
+function openUrlModal() {
+  document.getElementById('url-label-input').value = '';
+  document.getElementById('url-value-input').value = '';
+  document.getElementById('url-modal').classList.add('open');
+}
+
+async function saveUrl() {
+  const type = document.getElementById('url-type').value;
+  const label = document.getElementById('url-label-input').value || type;
+  const url = document.getElementById('url-value-input').value.trim();
+  if (!url) return;
+
+  const card = allCards.find(c => c.id === currentCardId);
+  if (!card) return;
+  if (!card.urls) card.urls = [];
+  card.urls.push({ type, label, url });
+
+  document.getElementById('url-modal').classList.remove('open');
+
+  try {
+    await gasPost({ action: 'updateCard', card });
+    localStorage.setItem('haksai_cards', JSON.stringify(allCards));
+  } catch(e) { console.error(e); }
+
+  renderCard();
+}
+</script>
+</body>
+</html>
