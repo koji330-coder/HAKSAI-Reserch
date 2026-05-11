@@ -613,26 +613,34 @@ function getFiltered() {
 // ── RENDER ──
 function renderCard() {
   filteredCards = getFiltered();
-  const area = document.getElementById('deck-area');
-  const stack = document.getElementById('deck-stack');
   document.getElementById('header-count').textContent = allCards.length + ' candidates';
 
+  // deck-stackを毎回IDで取得
+  const stack = document.getElementById('deck-stack');
+  const area = document.getElementById('deck-area');
+
   if (filteredCards.length === 0) {
-    stack.style.display = 'none';
+    if (stack) stack.style.display = 'none';
     document.getElementById('flip-hint').style.display = 'none';
     document.getElementById('card-counter').textContent = '';
-    area.innerHTML = `<div class="empty-state">
-      <div class="empty-icon">📭</div>
-      <div class="empty-title">候補がありません</div>
-      <div class="empty-sub">＋ボタンからスクショを追加して<br>最初のカードを作ろう</div>
-    </div>`;
+    // empty stateをdeck-areaの中に表示
+    const existing = area.querySelector('.empty-state');
+    if (!existing) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.innerHTML = `
+        <div class="empty-icon">📭</div>
+        <div class="empty-title">候補がありません</div>
+        <div class="empty-sub">＋ボタンからスクショを追加して<br>最初のカードを作ろう</div>`;
+      area.appendChild(empty);
+    }
     return;
   }
 
-  if (!stack.parentElement || !document.getElementById('deck-stack')) {
-    area.innerHTML = '';
-    area.appendChild(stack);
-  }
+  // empty stateを消す
+  const existing = area.querySelector('.empty-state');
+  if (existing) existing.remove();
+
   stack.style.display = 'block';
   document.getElementById('flip-hint').style.display = 'block';
 
