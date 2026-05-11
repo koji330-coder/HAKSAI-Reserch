@@ -566,9 +566,9 @@ async function loadCards() {
   if (cached) {
     try { allCards = JSON.parse(cached); renderCard(); } catch(e) {}
   }
-  // バックグラウンドでスプシと同期
+  // バックグラウンドでスプシと同期（GETで取得）
   try {
-    const data = await gasPost({ action: 'getCards' });
+    const data = await gasGet({ action: 'getCards' });
     if (data.status === 'ok') {
       allCards = data.cards || [];
       localStorage.setItem('haksai_cards', JSON.stringify(allCards));
@@ -580,19 +580,18 @@ async function loadCards() {
 }
 
 // ── GAS通信 ──
+async function gasGet(params) {
+  const url = GAS_URL + '?' + new URLSearchParams(params);
+  const res = await fetch(url);
+  return res.json();
+}
+
 async function gasPost(body) {
   const res = await fetch(GAS_URL, {
     method: 'POST',
-    redirect: 'follow',
-    body: JSON.stringify(body)
+    body: JSON.stringify(body),
   });
-  const text = await res.text();
-  try {
-    return JSON.parse(text);
-  } catch(e) {
-    console.error('GASレスポンス:', text.slice(0, 300));
-    throw new Error('JSONパースエラー: ' + text.slice(0, 100));
-  }
+  return res.json();
 }
 
 // ── FILTER ──
@@ -615,7 +614,6 @@ function renderCard() {
   filteredCards = getFiltered();
   document.getElementById('header-count').textContent = allCards.length + ' candidates';
 
-  // deck-stackを毎回IDで取得
   const stack = document.getElementById('deck-stack');
   const area = document.getElementById('deck-area');
 
@@ -623,7 +621,6 @@ function renderCard() {
     if (stack) stack.style.display = 'none';
     document.getElementById('flip-hint').style.display = 'none';
     document.getElementById('card-counter').textContent = '';
-    // empty stateをdeck-areaの中に表示
     const existing = area.querySelector('.empty-state');
     if (!existing) {
       const empty = document.createElement('div');
@@ -637,7 +634,6 @@ function renderCard() {
     return;
   }
 
-  // empty stateを消す
   const existing = area.querySelector('.empty-state');
   if (existing) existing.remove();
 
