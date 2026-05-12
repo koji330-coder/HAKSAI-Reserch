@@ -468,8 +468,18 @@ async function gasGet(params) {
 }
 
 async function gasPost(body) {
-  const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(body) });
-  return res.json();
+  const bodyStr = JSON.stringify(body);
+  console.log('[HAKSAI] POST bodyサイズ:', Math.round(bodyStr.length/1024) + 'KB');
+  const res = await fetch(GAS_URL, { method: 'POST', body: bodyStr });
+  console.log('[HAKSAI] fetchレスポンス status:', res.status, 'ok:', res.ok);
+  const text = await res.text();
+  console.log('[HAKSAI] レスポンステキスト先頭200:', text.slice(0,200));
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    console.error('[HAKSAI] JSONパース失敗:', text.slice(0,300));
+    throw new Error('JSONパースエラー: ' + text.slice(0,100));
+  }
 }
 
 function setFilter(f, el) {
@@ -725,16 +735,16 @@ async function startAnalysis() {
   if (uploadedImages.ad) images.push({...uploadedImages.ad, role:'ad_competitors'});
   if (uploadedImages.rakumart) images.push({...uploadedImages.rakumart, role:'rakumart'});
 
-  // デバッグ：サイズ確認
   const totalBytes = images.reduce((s,i) => s + (i.base64.length * 0.75), 0);
   const totalMB = (totalBytes / 1024 / 1024).toFixed(2);
-  const sizeMsg = `画像${images.length}枚、合計約${totalMB}MB\nこのまま送信しますか？`;
-  if (!confirm(sizeMsg)) return;
+  console.log(`[HAKSAI] 画像${images.length}枚 合計${totalMB}MB`, images.map(i=>({role:i.role, kb:Math.round(i.base64.length*0.75/1024)+'KB'})));
 
   document.getElementById('upload-modal').classList.remove('open');
   document.getElementById('loading').classList.add('open');
   try {
+    console.log('[HAKSAI] gasPost送信開始');
     const data = await gasPost({ action:'analyzeImage', images, memo });
+    console.log('[HAKSAI] gasPost完了', data?.status);
     if (data.status==='ok') {
       allCards.unshift(data.card);
       localStorage.setItem('haksai_cards', JSON.stringify(allCards));
