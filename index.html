@@ -584,11 +584,11 @@ function buildBack(d) {
     </div>
 
     <div class="back-tabs">
-      <button class="back-tab active" onclick="event.stopPropagation();switchTab(this,'audit')">🔍 審査官</button>
-      <button class="back-tab" onclick="event.stopPropagation();switchTab(this,'produce')">🎬 プロデューサー</button>
+      <button class="back-tab active" onclick="event.stopPropagation();switchTab(this,'audit-${d.id}')">🔍 審査官</button>
+      <button class="back-tab" onclick="event.stopPropagation();switchTab(this,'produce-${d.id}')">🎬 プロデューサー</button>
     </div>
 
-    <div class="back-pane active" id="pane-audit">
+    <div class="back-pane active" id="pane-audit-${d.id}">
       <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">
         信頼度: <span class="conf-badge ${confCls}">${audit.confidence||'—'}</span>
         <span style="color:var(--muted);font-size:10px;margin-left:6px;">${audit.confidence_reason||''}</span>
@@ -606,7 +606,7 @@ function buildBack(d) {
       ${nextActions?`<div class="next-actions">${nextActions}</div>`:''}
     </div>
 
-    <div class="back-pane" id="pane-produce">
+    <div class="back-pane" id="pane-produce-${d.id}">
       <div class="produce-score">
         <div class="score-num">${score}</div>
         <div class="score-bar-wrap">
@@ -637,7 +637,7 @@ function switchTab(btn, pane) {
 
 function handleCardClick(e) {
   if (isDragging) return;
-  if (e.target.closest('.url-add,.url-item,.back-action-btn')) return;
+  if (e.target.closest('.url-add,.url-item,.back-action-btn,.back-tab,.back-tabs')) return;
   const card = document.getElementById('main-card');
   isFlipped = !isFlipped;
   card.classList.toggle('flipped', isFlipped);
@@ -681,14 +681,30 @@ function closeOnOverlay(e, id) { if (e.target===document.getElementById(id)) doc
 
 function loadImage(input, type) {
   if (!input.files[0]) return;
+  const file = input.files[0];
   const reader = new FileReader();
   reader.onload = e => {
-    uploadedImages[type]={base64:e.target.result.split(',')[1],mimeType:input.files[0].type};
-    document.getElementById('zone-'+type).classList.add('loaded');
-    document.getElementById('sub-'+type).textContent='✅ 読み込み済み';
-    if (uploadedImages.main) document.getElementById('analyze-btn').classList.add('ready');
+    // Canvasでリサイズして圧縮（長辺1200px・JPEG品質0.75）
+    const img = new Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let w = img.width, h = img.height;
+      if (w > MAX || h > MAX) {
+        if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+        else { w = Math.round(w * MAX / h); h = MAX; }
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+      const compressed = canvas.toDataURL('image/jpeg', 0.75);
+      uploadedImages[type] = { base64: compressed.split(',')[1], mimeType: 'image/jpeg' };
+      document.getElementById('zone-'+type).classList.add('loaded');
+      document.getElementById('sub-'+type).textContent='✅ 読み込み済み';
+      if (uploadedImages.main) document.getElementById('analyze-btn').classList.add('ready');
+    };
+    img.src = e.target.result;
   };
-  reader.readAsDataURL(input.files[0]);
+  reader.readAsDataURL(file);
 }
 
 async function startAnalysis() {
