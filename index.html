@@ -725,6 +725,12 @@ async function startAnalysis() {
   if (uploadedImages.ad) images.push({...uploadedImages.ad, role:'ad_competitors'});
   if (uploadedImages.rakumart) images.push({...uploadedImages.rakumart, role:'rakumart'});
 
+  // デバッグ：サイズ確認
+  const totalBytes = images.reduce((s,i) => s + (i.base64.length * 0.75), 0);
+  const totalMB = (totalBytes / 1024 / 1024).toFixed(2);
+  const sizeMsg = `画像${images.length}枚、合計約${totalMB}MB\nこのまま送信しますか？`;
+  if (!confirm(sizeMsg)) return;
+
   document.getElementById('upload-modal').classList.remove('open');
   document.getElementById('loading').classList.add('open');
   try {
