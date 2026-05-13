@@ -429,11 +429,27 @@ header { padding: 20px 20px 0; display: flex; align-items: center; justify-conte
 <script>
 const GAS_URL_KEY = 'haksai_gas_url';
 let GAS_URL = localStorage.getItem(GAS_URL_KEY) || '';
-let allCards = [], filteredCards = [];
-let currentIndex = 0, currentFilter = 'all';
-let isFlipped = false, isDragging = false;
+
+// ── STATE（シンプルに一元管理）──
+let allCards = [];       // 全カード
+let deck = [];           // 現在のフィルター後カード（これだけを使う）
+let deckIndex = 0;       // deck内の現在位置
+let currentFilter = 'all';
+let isFlipped = false;
+let isDragging = false;
 let currentCardId = null;
 let uploadedImages = { main: null, review: null, ad: null, rakumart: null };
+
+// deckを再構築する唯一の関数
+function rebuildDeck(resetIndex = true) {
+  deck = currentFilter === 'all'
+    ? [...allCards]
+    : allCards.filter(c => c.status === currentFilter);
+  if (resetIndex) deckIndex = 0;
+  // deckIndexが範囲外になった場合の安全処理
+  if (deck.length > 0 && deckIndex >= deck.length) deckIndex = deck.length - 1;
+  if (deck.length === 0) deckIndex = 0;
+}
 
 window.onload = async () => {
   if (!GAS_URL) { document.getElementById('setup-screen').classList.add('open'); return; }
@@ -451,12 +467,15 @@ function saveGasUrl() {
 
 async function loadCards() {
   const cached = localStorage.getItem('haksai_cards');
-  if (cached) { try { allCards = JSON.parse(cached); renderCard(); } catch(e) {} }
+  if (cached) {
+    try { allCards = JSON.parse(cached); rebuildDeck(); renderCard(); } catch(e) {}
+  }
   try {
     const data = await gasGet({ action: 'getCards' });
     if (data.status === 'ok') {
       allCards = data.cards || [];
       localStorage.setItem('haksai_cards', JSON.stringify(allCards));
+      rebuildDeck();
       renderCard();
     }
   } catch(e) { console.error('同期エラー:', e); }
@@ -468,39 +487,27 @@ async function gasGet(params) {
 }
 
 async function gasPost(body) {
-  const bodyStr = JSON.stringify(body);
-  console.log('[HAKSAI] POST bodyサイズ:', Math.round(bodyStr.length/1024) + 'KB');
-  const res = await fetch(GAS_URL, { method: 'POST', body: bodyStr });
-  console.log('[HAKSAI] fetchレスポンス status:', res.status, 'ok:', res.ok);
+  const res = await fetch(GAS_URL, { method: 'POST', body: JSON.stringify(body) });
   const text = await res.text();
-  console.log('[HAKSAI] レスポンステキスト先頭200:', text.slice(0,200));
-  try {
-    return JSON.parse(text);
-  } catch(e) {
-    console.error('[HAKSAI] JSONパース失敗:', text.slice(0,300));
-    throw new Error('JSONパースエラー: ' + text.slice(0,100));
-  }
+  try { return JSON.parse(text); }
+  catch(e) { throw new Error('JSONパースエラー: ' + text.slice(0,100)); }
 }
 
 function setFilter(f, el) {
   currentFilter = f;
   document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
   el.classList.add('active');
-  currentIndex = 0; isFlipped = false;
+  isFlipped = false;
+  rebuildDeck(true);  // インデックスをリセット
   renderCard();
 }
 
-function getFiltered() {
-  return currentFilter === 'all' ? [...allCards] : allCards.filter(c => c.status === currentFilter);
-}
-
 function renderCard() {
-  filteredCards = getFiltered();
   document.getElementById('header-count').textContent = allCards.length + ' candidates';
   const stack = document.getElementById('deck-stack');
   const area = document.getElementById('deck-area');
 
-  if (filteredCards.length === 0) {
+  if (deck.length === 0) {
     if (stack) stack.style.display = 'none';
     document.getElementById('flip-hint').style.display = 'none';
     document.getElementById('card-counter').textContent = '';
@@ -512,18 +519,23 @@ function renderCard() {
     }
     return;
   }
+
+  // empty stateを消す
   const ex = area.querySelector('.empty-state');
   if (ex) ex.remove();
   stack.style.display = 'block';
   document.getElementById('flip-hint').style.display = 'block';
-  stack.querySelectorAll('.card-shadow').forEach(s => s.style.display = filteredCards.length > 1 ? 'block' : 'none');
-  document.getElementById('card-counter').textContent = `${currentIndex + 1} / ${filteredCards.length}`;
+  stack.querySelectorAll('.card-shadow').forEach(s => s.style.display = deck.length > 1 ? 'block' : 'none');
+  document.getElementById('card-counter').textContent = `${deckIndex + 1} / ${deck.length}`;
 
-  const d = filteredCards[currentIndex];
+  const d = deck[deckIndex];
+  if (!d) { console.error('カードなし: deckIndex=', deckIndex, 'deck.length=', deck.length); return; }
   currentCardId = d.id;
+
   const card = document.getElementById('main-card');
   card.innerHTML = buildFront(d) + buildBack(d);
   card.classList.remove('flipped', 'swipe-left', 'swipe-right');
+  card.style.transform = '';
   isFlipped = false;
   attachSwipe(card);
 }
@@ -654,8 +666,20 @@ function handleCardClick(e) {
 }
 
 function openLink(url) { if (url && url !== '#') window.open(url, '_blank'); }
-function nextCard() { filteredCards = getFiltered(); if (!filteredCards.length) return; currentIndex = (currentIndex+1)%filteredCards.length; isFlipped=false; renderCard(); }
-function prevCard() { filteredCards = getFiltered(); if (!filteredCards.length) return; currentIndex = (currentIndex-1+filteredCards.length)%filteredCards.length; isFlipped=false; renderCard(); }
+
+function nextCard() {
+  if (deck.length === 0) return;
+  deckIndex = (deckIndex + 1) % deck.length;
+  isFlipped = false;
+  renderCard();
+}
+
+function prevCard() {
+  if (deck.length === 0) return;
+  deckIndex = (deckIndex - 1 + deck.length) % deck.length;
+  isFlipped = false;
+  renderCard();
+}
 
 // マウスイベントはwindowに一度だけ登録する
 let _swipeCard = null;
@@ -791,8 +815,9 @@ async function startAnalysis() {
     if (data.status==='ok') {
       allCards.unshift(data.card);
       localStorage.setItem('haksai_cards', JSON.stringify(allCards));
-      currentIndex=0; currentFilter='all';
-      document.querySelectorAll('.filter-tab').forEach((t,i)=>t.classList.toggle('active',i===0));
+      currentFilter = 'all';
+      document.querySelectorAll('.filter-tab').forEach((t,i) => t.classList.toggle('active', i===0));
+      rebuildDeck(true); // 先頭から表示
       renderCard();
     } else {
       alert('AI分析に失敗しました。別のスクショで再試行してください。');
@@ -822,6 +847,7 @@ async function saveUrl() {
   card.urls.push({type,label,url});
   document.getElementById('url-modal').classList.remove('open');
   try { await gasPost({action:'updateCard',card}); localStorage.setItem('haksai_cards',JSON.stringify(allCards)); } catch(e){console.error(e);}
+  rebuildDeck(false);
   renderCard();
 }
 
@@ -868,6 +894,7 @@ async function saveEdit() {
   card.produce.diff=diffVal;
   document.getElementById('edit-modal').classList.remove('open');
   try { await gasPost({action:'updateCard',card}); localStorage.setItem('haksai_cards',JSON.stringify(allCards)); } catch(e){console.error(e);}
+  rebuildDeck(false);
   renderCard();
 }
 
@@ -878,10 +905,9 @@ async function executeDelete() {
   const id=currentCardId;
   closeConfirm();
   try { await gasPost({action:'deleteCard',id}); } catch(e){console.error(e);}
-  allCards=allCards.filter(c=>c.id!==id);
-  localStorage.setItem('haksai_cards',JSON.stringify(allCards));
-  filteredCards=getFiltered();
-  if (currentIndex>=filteredCards.length) currentIndex=Math.max(0,filteredCards.length-1);
+  allCards = allCards.filter(c => c.id !== id);
+  localStorage.setItem('haksai_cards', JSON.stringify(allCards));
+  rebuildDeck(false); // インデックスを維持しつつdeckを再構築
   renderCard();
 }
 </script>
